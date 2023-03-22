@@ -8,13 +8,13 @@ import pickle
 import pathlib
 temp = pathlib.PosixPath
 pathlib.PosixPath = pathlib.WindowsPath
-import openai
+import openai_ratelimit
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai_ratelimit.api_key = os.getenv('OPENAI_API_KEY')
 
 # Load the LangChain.
 index = faiss.read_index("docs.index")
