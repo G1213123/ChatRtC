@@ -7,6 +7,7 @@ from langchain.embeddings.base import Embeddings
 from langchain.utils import get_from_dict_or_env
 
 from ratelimiter import RateLimiter
+import time
 
 
 class OpenAIEmbeddings(BaseModel, Embeddings):
@@ -24,8 +25,8 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
     """
 
     client: Any  #: :meta private:
-    document_model_name: str = "text-embedding-davinci-003"
-    query_model_name: str = "text-embedding-davinci-003"
+    document_model_name: str = "text-embedding-ada-002"
+    query_model_name: str = "text-embedding-ada-002"
     openai_api_key: Optional[str] = None
 
     class Config:
@@ -76,7 +77,11 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
         """Call out to OpenAI's embedding endpoint."""
         # replace newlines, which can negatively affect performance.
         text = text.replace("\n", " ")
-        return self.client.create(input=[text], engine=engine)["data"][0]["embedding"]
+        try:
+            return self.client.create(input=[text], engine=engine)["data"][0]["embedding"]
+        except:
+            time.sleep(60)
+            self._embedding_func(text=text, engine=engine)
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Call out to OpenAI's embedding endpoint for embedding search docs.

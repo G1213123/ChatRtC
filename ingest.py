@@ -41,5 +41,5 @@ for i, d in enumerate(data):
 store = FAISS.from_texts(docs, OpenAIEmbeddings(), metadatas=metadatas)
 faiss.write_index(store.index, "docs.index")
 store.index = None
-with open("faiss_store.pkl", "wb", encoding='utf-8') as f:
+with open("faiss_store.pkl", "wb") as f:
     pickle.dump(store, f)
