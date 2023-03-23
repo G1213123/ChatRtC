@@ -8,7 +8,7 @@ pattern = re.compile(r'\d+_\d+.htm')
 for p in ps:
     if pattern.match(p.name):
         print(p.name)
-        with open(p, 'r', encoding='utf-8') as f:
+        with open(p, 'r', encoding='utf-8', errors='ignore') as f:
             html_text = f.read()
 
         # convert html to markdown
