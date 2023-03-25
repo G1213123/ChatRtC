@@ -9,6 +9,7 @@ import pathlib
 import platform
 plt = platform.system()
 if plt == 'Windows': pathlib.PosixPath = pathlib.WindowsPath
+if plt == 'Linux': pathlib.WindowsPath = pathlib.PosixPath
 import openai_ratelimit
 from dotenv import load_dotenv
 import os
