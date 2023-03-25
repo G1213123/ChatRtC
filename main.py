@@ -19,9 +19,9 @@ load_dotenv()
 openai_ratelimit.api_key = os.getenv('OPENAI_API_KEY')
 
 # Load the LangChain.
-index = faiss.read_index("docs.index")
+index = faiss.read_index("chatrtc/docs.index")
 
-with open("faiss_store.pkl", "rb") as f:
+with open("chatrtc/faiss_store.pkl", "rb") as f:
     store = pickle.load(f)
 
 store.index = index
