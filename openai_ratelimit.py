@@ -35,7 +35,7 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
         extra = Extra.forbid
 
     # TODO: deprecate this
-    @root_validator(pre=True)
+    # @root_validator(pre=True)
     def get_model_names(cls, values: Dict) -> Dict:
         """Get model names from just old model name."""
         if "model_name" in values:
