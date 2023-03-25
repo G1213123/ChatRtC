@@ -35,7 +35,7 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
         extra = Extra.forbid
 
     # TODO: deprecate this
-    # @root_validator(pre=True)
+    #@root_validator(pre=True)
     def get_model_names(cls, values: Dict) -> Dict:
         """Get model names from just old model name."""
         if "model_name" in values:
@@ -54,7 +54,7 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
             values["query_model_name"] = f"text-search-{model_name}-query-001"
         return values
 
-    @root_validator()
+    #@root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
         """Validate that api key and python package exists in environment."""
         openai_api_key = get_from_dict_or_env(
