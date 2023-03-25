@@ -19,13 +19,13 @@ load_dotenv()
 openai_ratelimit.api_key = os.getenv('OPENAI_API_KEY')
 
 # Load the LangChain.
-index = faiss.read_index("/app/chatrtc/docs.index")
+index = faiss.read_index("docs.index")
 
-with open("/app/chatrtc/faiss_store.pkl", "rb") as f:
+with open("faiss_store.pkl", "rb") as f:
     store = pickle.load(f)
 
 store.index = index
-chain = VectorDBQAWithSourcesChain.from_llm(llm=OpenAI(temperature=0), vectorstore=store)
+chain = VectorDBQAWithSourcesChain.from_llm(llm=OpenAI(temperature=0), vectorstore=store, verbose= True)
 
 
 # From here down is all the StreamLit UI.
