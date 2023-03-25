@@ -1,6 +1,8 @@
 langchain==0.0.58
 tiktoken==0.3.2
 ratelimiter
+python-dotenv==1.0.0
+markdownify==0.11.6
 openai
 faiss-cpu
 streamlit
