@@ -6,8 +6,9 @@ from langchain import OpenAI
 from langchain.chains import VectorDBQAWithSourcesChain
 import pickle
 import pathlib
-temp = pathlib.PosixPath
-pathlib.PosixPath = pathlib.WindowsPath
+import platform
+plt = platform.system()
+if plt == 'Windows': pathlib.PosixPath = pathlib.WindowsPath
 import openai_ratelimit
 from dotenv import load_dotenv
 import os
