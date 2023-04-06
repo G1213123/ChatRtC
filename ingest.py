@@ -19,6 +19,7 @@ def main():
     ps = list(Path("Notion_DB/TPDM/").glob("**/**/*_*.md"))
     pattern = re.compile(r'\d+_\d+.md')
     ps = [p for p in ps if pattern.match(p.name)]
+    print(ps)
 
     data = []
     sources = []
