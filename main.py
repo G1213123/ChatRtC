@@ -11,6 +11,7 @@ from qa import RetrievalQAWithClausesSourcesChain
 import pickle
 import pathlib
 import platform
+import ingest
 
 plt = platform.system()
 if plt == 'Windows': pathlib.PosixPath = pathlib.WindowsPath
@@ -26,6 +27,8 @@ openai_ratelimit.api_key = os.getenv( 'OPENAI_API_KEY' )
 
 # Load the LangChain.
 index = faiss.read_index( "docs.index" )
+
+if not os.path.isfile("faiss_store.pkl") : ingest.main()
 
 with open( "faiss_store.pkl", "rb" ) as f:
     store = pickle.load( f )
