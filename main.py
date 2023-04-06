@@ -3,7 +3,8 @@ import streamlit as st
 from streamlit_chat import message
 import streamlit.components.v1 as components
 import faiss
-from langchain import OpenAI
+from langchain import OpenAI, PromptTemplate
+from prompt import EXAMPLE_PROMPT, QUESTION_PROMPT, COMBINE_PROMPT
 from langchain.chains import VectorDBQAWithSourcesChain
 import pickle
 import pathlib
@@ -28,7 +29,19 @@ with open("faiss_store.pkl", "rb") as f:
     store = pickle.load(f)
 
 store.index = index
-chain = VectorDBQAWithSourcesChain.from_llm(llm=OpenAI(temperature=0), vectorstore=store, verbose= True)
+
+#Set up prompt
+
+
+chain = VectorDBQAWithSourcesChain.from_llm(llm=OpenAI(batch_size=1, temperature=0), 
+                                            document_prompt = EXAMPLE_PROMPT,
+                                            question_prompt = QUESTION_PROMPT,
+                                            combine_prompt = COMBINE_PROMPT,
+                                            vectorstore=store, 
+                                            k=2,
+                                            reduce_k_below_max_tokens=True, 
+                                            max_tokens_limit=500, 
+                                            verbose= True)
 
 
 # From here down is all the StreamLit UI.
@@ -45,13 +58,19 @@ def get_text():
     input_text = st.text_input("You: ", "What is pcu?", key="input")
     return input_text
 
-def beautify_source_name(name):
-    out = []
-    for n in name.split(','):
-        volume = re.search(r"(?<=TPDM\\v)(\d+)(?=\\c)", n).group(0)
-        chapter, section = re.search('\d+_\d+',n).group(0).split('_')
-        out.append(f"Volume {volume}\nChapter {chapter}.{section}")
-    return "\n\n".join(out)
+def beautify_source_name(answer):
+    clauses = re.findall(r'\[(.*?)\]',answer)
+    for n in clauses:
+        try:
+            volume = re.search(r"(?<=TPDM\\v)(\d+)(?=\\c)", n).group(0)
+            chapter, section = re.search('\d+_\d+',n).group(0).split('_')
+            clause = n.split('clause ')[1].strip()
+            substitute = (f"Volume {volume}\nChapter {chapter}.{section}\n{clause}")
+            answer = answer.replace(n, substitute)
+        except:
+            pass
+    return answer
+        
 
 def get_full_name(name):
     volume = re.search( r"(?<=TPDM\\v)(\d+)(?=\\c)", name ).group( 0 )
@@ -66,17 +85,41 @@ with st.sidebar:
 
     if user_input:
         result = chain({"question": user_input})
-        output = f"Answer: {result['answer']}\nSources:\n{beautify_source_name(result['sources'])}"
+        #source_content = result['source_documents'][0].page_content
+        output = f"Answer: {beautify_source_name(result['answer'])}"
 
         st.session_state.past.append(user_input)
         st.session_state.generated.append(output)
 
+        try:
+            clauses = [s.split('clause ')[1] for s in re.findall(r'\[(.*?)\]', result['answer'])]
+        except:
+            clauses = re.findall(r'\[(.*?)\]', result['answer'])
+
         for i,h in enumerate(result['sources'].split(',')):
             HtmlFile = open( h.replace('.md','.htm').strip(), encoding="utf8", errors='ignore')
             source_code = HtmlFile.read()
-            highlighted = " ".join( f"<mark>{t}</mark>" if t in result['answer'] else t for t in source_code.split() )
+
+            clause = clauses[i]
+            my_script = """
+                <script>
+                document.querySelector('[title="st.iframe"]').onload = function() {
+                // Get all the div elements with the class "myClass"
+                var divElements = document.querySelectorAll('.leftpanel');
+
+                // Loop through each div element
+                for (var i = 0; i < divElements.length; i++) {
+                    // Check if the div element contains the text "myText"
+                    if (divElements[i].textContent.includes('{clause}')) {
+                    // Found the div element, scroll to it
+                    divElements[i].scrollIntoView();
+                    break; // Exit the loop
+                    }
+                }
+                }
+                </script>"""
             with results_tabs[i]:
-                components.html( source_code ,width=None, height=800, scrolling=True)
+                components.html( source_code+my_script ,width=None, height=800, scrolling=True)
 
     if st.session_state["generated"]:
 
