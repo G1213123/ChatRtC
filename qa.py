@@ -1,22 +1,38 @@
 """Ask a question to the notion database."""
-import faiss
-from langchain import OpenAI
 from langchain.chains import VectorDBQAWithSourcesChain
-import pickle
-import argparse
+from typing import Any, Dict, List, Optional
+import re
 
-parser = argparse.ArgumentParser(description='Ask a question to the notion DB.')
-parser.add_argument('question', type=str, help='The question to ask the notion DB')
-args = parser.parse_args()
+class RetrievalQAWithClausesSourcesChain (VectorDBQAWithSourcesChain):
+    clauses_key: str = "clauses"  #: :meta private:
 
-# Load the LangChain.
-index = faiss.read_index("docs.index")
+    @property
+    def output_keys(self) -> List[str]:
+        """Return output key.
 
-with open("faiss_store.pkl", "rb") as f:
-    store = pickle.load(f)
+        :meta private:
+        """
+        _output_keys = [self.answer_key, self.clauses_key, self.sources_answer_key]
+        if self.return_source_documents:
+            _output_keys = _output_keys + ["source_documents"]
+        return _output_keys
 
-store.index = index
-chain = VectorDBQAWithSourcesChain.from_llm(llm=OpenAI(temperature=0), vectorstore=store)
-result = chain({"question": args.question})
-print(f"Answer: {result['answer']}")
-print(f"Sources: {result['sources']}")
+    def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        docs = self._get_docs( inputs )
+        answer, _ = self.combine_documents_chain.combine_docs( docs, **inputs )
+        if len(re.findall( r"SOURCES:\s", answer ))==1:
+            answer, sources = re.split( r"SOURCES:\s", answer )
+        else:
+            sources = ""
+        if len(re.findall( r"CLAUSES:\s", answer ))==1:
+            answer, clauses = re.split( r"CLAUSES:\s", answer )
+        else:
+            clauses = ""
+        result: Dict[str, Any] = {
+            self.answer_key: answer,
+            self.sources_answer_key: sources,
+            self.clauses_key:clauses
+        }
+        if self.return_source_documents:
+            result["source_documents"] = docs
+        return result
