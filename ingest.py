@@ -16,7 +16,7 @@ openai_ratelimit.api_key = os.getenv('OPENAI_API_KEY')
 
 def main():
     # Here we load in the data in the format that Notion exports it in.
-    ps = list(Path("Notion_DB/TPDM/").glob("**/**/*_*.md"))
+    ps = list(Path("Notion_DB/TPDM/").rglob("*_*.md"))
     pattern = re.compile(r'\d+_\d+.md')
     ps = [p for p in ps if pattern.match(p.name)]
     print(ps)
