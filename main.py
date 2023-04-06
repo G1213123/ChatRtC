@@ -87,47 +87,46 @@ with st.sidebar:
     user_input = get_text()
 
     if user_input != "":
-        try:
-            result = chain( {"question": user_input} )
-            output = f"Answer: {result['answer']}\n\nClauses: {result['clauses']}"
+        result = chain( {"question": user_input} )
+        output = f"Answer: {result['answer']}\n\nClauses: {result['clauses']}"
 
-            st.session_state.past.append( user_input )
-            st.session_state.generated.append( output )
+        st.session_state.past.append( user_input )
+        st.session_state.generated.append( output )
 
-            clauses = [s.strip() for s  in result['clauses'].split(',')]
+        clauses = [s.strip() for s  in result['clauses'].split(',')]
 
-            for i, h in enumerate( result['sources'].split( ',' ) ):
-                HtmlFile = open( h.replace( '.md', '.htm' ).strip(), encoding="utf8", errors='ignore' )
-                source_code = HtmlFile.read()
+        for i, h in enumerate( result['sources'].split( ',' ) ):
+            HtmlFile = open( h.replace( '.md', '.htm' ).strip(), encoding="utf8", errors='ignore' )
+            source_code = HtmlFile.read()
 
-                try:
-                    clause = clauses[i].split('clause ')[-1].replace(']','')
-                    my_script = """
-                        <script>
-                        document.querySelector('[title="st.iframe"]').onload = function() {
-                        // Get all the div elements with the class "myClass"
-                        var divElements = document.querySelectorAll('.leftpanel');
-        
-                        // Loop through each div element
-                        for (var i = 0; i < divElements.length; i++) {
-                            // Check if the div element contains the text "myText"
-                            if (divElements[i].textContent.includes('{clause}')) {
-                            // Found the div element, scroll to it
-                            divElements[i].scrollIntoView();
-                            break; // Exit the loop
-                            }
+            try:
+                clause = clauses[i].split('clause ')[-1].replace(']','')
+                my_script = """
+                    <script>
+                    document.querySelector('[title="st.iframe"]').onload = function() {
+                    // Get all the div elements with the class "myClass"
+                    var divElements = document.querySelectorAll('.leftpanel');
+    
+                    // Loop through each div element
+                    for (var i = 0; i < divElements.length; i++) {
+                        // Check if the div element contains the text "myText"
+                        if (divElements[i].textContent.includes('{clause}')) {
+                        // Found the div element, scroll to it
+                        divElements[i].scrollIntoView();
+                        break; // Exit the loop
                         }
-                        }
-                        </script>"""
-                except IndexError as e:
-                    my_script = ''
-                with results_tabs[i]:
-                    html( source_code + my_script, width=None, height=800, scrolling=True )
-        except:
-            output = f"Answer: Sorry, I am too stupid to understand your question. Could you please ask again?"
+                    }
+                    }
+                    </script>"""
+            except IndexError as e:
+                my_script = ''
+            with results_tabs[i]:
+                html( source_code + my_script, width=None, height=800, scrolling=True )
+        #except:
+        #    output = f"Answer: Sorry, I am too stupid to understand your question. Could you please ask again?"
 
-            st.session_state.past.append( user_input )
-            st.session_state.generated.append( output )
+        #    st.session_state.past.append( user_input )
+        #    st.session_state.generated.append( output )
 
     if st.session_state["generated"]:
 
