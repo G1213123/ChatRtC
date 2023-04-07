@@ -34,6 +34,7 @@ try:
         store = pickle.load( f )
 except FileNotFoundError:
     import ingest
+    ingest.ingest()
 
 store.index = index
 
