@@ -39,8 +39,12 @@ def ingest():
         metadatas.extend( [{"source": sources[i]}] * len( splits ) )
 
     # Here we create a vector store from the documents and save it to disk.
+    print(docs)
     store = FAISS.from_texts( docs, OpenAIEmbeddings(), metadatas=metadatas )
     faiss.write_index( store.index, "docs.index" )
     store.index = None
     with open( "faiss_store.pkl", "wb" ) as f:
         pickle.dump( store, f )
+
+if __name__ == "__main__":
+    ingest()
