@@ -28,7 +28,8 @@ openai_ratelimit.api_key = os.getenv( 'OPENAI_API_KEY' )
 # Load the LangChain.
 index = faiss.read_index( "docs.index" )
 
-if not os.path.isfile("faiss_store.pkl") : ingest.main()
+if not os.path.isfile("faiss_store.pkl") :
+    import ingest
 
 with open( "faiss_store.pkl", "rb" ) as f:
     store = pickle.load( f )
