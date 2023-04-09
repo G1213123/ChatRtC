@@ -10,3 +10,4 @@ streamlit-chat
 pydantic~=1.10.7
 pinecone-client
 lxml
+google-cloud-storage
