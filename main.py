@@ -91,6 +91,7 @@ with st.sidebar:
     if user_input != "":
         result = chain( {"question": user_input} )
         output = f"Answer: {result['answer']}\n\nClauses: {result['clauses']}"
+        print(output)
 
         st.session_state.past.append( user_input )
         st.session_state.generated.append( output )
