@@ -1,25 +1,18 @@
 """Python file to serve as the frontend"""
+import urllib
+import datetime
+
 import streamlit as st
 from streamlit_chat import message
-import streamlit.components.v1 as components
-from streamlit.components.v1 import html
+from streamlit.components.v1 import html, iframe
 import pinecone
 from langchain.chat_models import ChatOpenAI
 from prompt import EXAMPLE_PROMPT, QUESTION_PROMPT, COMBINE_PROMPT
-from langchain.chains import VectorDBQAWithSourcesChain
 from langchain.vectorstores import Pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
 from qa import RetrievalQAWithClausesSourcesChain
-import pickle
-import pathlib
-import platform
-import ingest
 from google.oauth2 import service_account
 from google.cloud import storage
-
-plt = platform.system()
-if plt == 'Windows': pathlib.PosixPath = pathlib.WindowsPath
-if plt == 'Linux': pathlib.WindowsPath = pathlib.PosixPath
 import openai
 from dotenv import load_dotenv
 import os
@@ -57,11 +50,20 @@ client = storage.Client(credentials=credentials)
 
 # Retrieve file contents.
 # Uses st.cache_data to only rerun when the query changes or after 10 min.
-@st.cache_data(ttl=600)
+@st.cache_data()
 def read_file(bucket_name, file_path):
+    file_path = urllib.parse.unquote( file_path ).replace( '\\', '/' ).replace('static/','')
     bucket = client.bucket(bucket_name)
-    content = bucket.blob(file_path).download_as_string().decode("utf-8")
-    return content
+    content = bucket.blob(file_path)
+
+    url = content.generate_signed_url(
+        version="v4",
+        # This URL is valid for 15 minutes
+        expiration=datetime.timedelta( minutes=15 ),
+        # Allow GET requests using this URL.
+        method="GET",
+    )
+    return url
 
 # From here down is all the StreamLit UI.
 st.set_page_config( page_title="ChatRTC loaded with TPDM", page_icon=":robot:", layout="wide" )
@@ -120,32 +122,14 @@ with st.sidebar:
                 message(st.session_state["past"][i], is_user=True, key=str(i) + "_user")
 
         for i, h in enumerate( result['sources'].split( ',' ) ):
-            HtmlFile = open( h.replace( '.md', '.htm' ).strip(), encoding="utf8", errors='ignore' )
-            source_code = HtmlFile.read()
+            bucket_name = "tpdm"
+            file_path = h.replace( '.md', '.htm' ).strip()
+            source_code = read_file( bucket_name, file_path )
+            #HtmlFile = open( h.replace( '.md', '.htm' ).strip(), encoding="utf8", errors='ignore' )
+            #source_code = HtmlFile.read()
 
-            try:
-                clause = clauses[i].split('clause ')[-1].replace(']','')
-                my_script = """
-                    <script>
-                    document.querySelector('[title="st.iframe"]').onload = function() {
-                    // Get all the div elements with the class "myClass"
-                    var divElements = document.querySelectorAll('.leftpanel');
-    
-                    // Loop through each div element
-                    for (var i = 0; i < divElements.length; i++) {
-                        // Check if the div element contains the text "myText"
-                        if (divElements[i].textContent.includes('{clause}')) {
-                        // Found the div element, scroll to it
-                        divElements[i].scrollIntoView();
-                        break; // Exit the loop
-                        }
-                    }
-                    }
-                    </script>"""
-            except IndexError as e:
-                my_script = ''
             with results_tabs[i]:
-                html( source_code + my_script, width=None, height=800, scrolling=True )
+                iframe( source_code, width=None, height=600, scrolling=True )
         #except:
         #    output = f"Answer: Sorry, I am too stupid to understand your question. Could you please ask again?"
 
