@@ -3,10 +3,12 @@ import streamlit as st
 from streamlit_chat import message
 import streamlit.components.v1 as components
 from streamlit.components.v1 import html
-import faiss
+import pinecone
 from langchain.chat_models import ChatOpenAI
 from prompt import EXAMPLE_PROMPT, QUESTION_PROMPT, COMBINE_PROMPT
 from langchain.chains import VectorDBQAWithSourcesChain
+from langchain.vectorstores import Pinecone
+from langchain.embeddings.openai import OpenAIEmbeddings
 from qa import RetrievalQAWithClausesSourcesChain
 import pickle
 import pathlib
@@ -16,28 +18,24 @@ import ingest
 plt = platform.system()
 if plt == 'Windows': pathlib.PosixPath = pathlib.WindowsPath
 if plt == 'Linux': pathlib.WindowsPath = pathlib.PosixPath
-import openai_ratelimit
+import openai
 from dotenv import load_dotenv
 import os
 import re
 
 load_dotenv()
 
-openai_ratelimit.api_key = os.getenv( 'OPENAI_API_KEY' )
+openai.api_key = os.getenv( 'OPENAI_API_KEY' )
 
 # Load the LangChain.
-index = faiss.read_index( "docs.index" )
-
-
-try:
-    with open( "faiss_store.pkl", "rb" ) as f:
-        store = pickle.load( f )
-except FileNotFoundError:
-    import ingest
-    ingest.ingest()
-
-store.index = index
-
+pinecone.init(
+    api_key=os.getenv("PINECONE_API_KEY"),  # find at app.pinecone.io
+    environment=os.getenv("PINECONE_ENV")  # next to api key in console
+)
+index_name = os.getenv("PINECONE_INDEX")
+index = pinecone.Index(index_name)
+embeddings = OpenAIEmbeddings()
+store = Pinecone(index, embeddings.embed_query, "text")
 # Set up prompt
 
 
@@ -47,8 +45,6 @@ chain = RetrievalQAWithClausesSourcesChain.from_llm( llm=ChatOpenAI( temperature
                                                      combine_prompt=COMBINE_PROMPT,
                                                      vectorstore=store,
                                                      k=2,
-                                                     # reduce_k_below_max_tokens=True,
-                                                     # max_tokens_limit=500,
                                                      verbose=True )
 
 # From here down is all the StreamLit UI.

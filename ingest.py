@@ -1,50 +1,64 @@
 """This is the logic for ingesting Notion data into LangChain."""
 from pathlib import Path
 from langchain.text_splitter import CharacterTextSplitter
-import faiss
-from langchain.vectorstores import FAISS
-from openai_ratelimit import OpenAIEmbeddings
-import openai_ratelimit
+from langchain.document_loaders import BSHTMLLoader
+import openai
+from langchain.vectorstores import FAISS, Pinecone
+from langchain.embeddings.openai import OpenAIEmbeddings
 from dotenv import load_dotenv
-import pickle
+import glob
 import os
 import re
+import pinecone
 
 load_dotenv()
-
-openai_ratelimit.api_key = os.getenv( 'OPENAI_API_KEY' )
-
+openai.api_key = os.getenv('OPENAI_API_KEY')
+# initialize connection to pinecone (get API key at app.pinecone.io)
+pinecone.init(
+    api_key=os.getenv("PINECONE_API_KEY"),  # find at app.pinecone.io
+    environment=os.getenv("PINECONE_ENV")  # next to api key in console
+)
+index_name = os.getenv("PINECONE_INDEX")
+# check if index already exists (it shouldn't if this is first time)
+if index_name not in pinecone.list_indexes():
+    # if does not exist, create index
+    pinecone.create_index(
+        index_name,
+        dimension=1536,
+        metric='cosine',
+        metadata_config={'indexed': ['channel_id', 'published']}
+    )
 
 def ingest():
     # Here we load in the data in the format that Notion exports it in.
-    ps = list( Path( "Notion_DB/TPDM/" ).rglob( "*_*.md" ) )
-    pattern = re.compile( r'\d+_\d+.md' )
-    ps = [p for p in ps if pattern.match( p.name )]
+    ps = list(Path("static/TPDM/").rglob("*_*.htm"))
+    pattern = re.compile(r'\d+_\d+.htm')
+    ps = [p for p in ps if pattern.match(p.name)]
 
     data = []
-    sources = []
+    # sources = []
     for p in ps:
-        with open( p, encoding='utf-8' ) as f:
-            data.append( f.read() )
-        sources.append( p )
+        loader = BSHTMLLoader(p, open_encoding='utf-8')
+        s = loader.load()
+        for t in s:
+            t.page_content = t.page_content.replace('Top\n\n  Press Ctrl-F for Keyword Search on this Page', '')
+            t.metadata['source'] = str(t.metadata['source'])
+        data.append(s)
+        # sources.append( p )
 
     # Here we split the documents, as needed, into smaller chunks.
     # We do this due to the context limits of the LLMs.
-    text_splitter = CharacterTextSplitter( chunk_size=1500, separator="\n" )
+    text_splitter = CharacterTextSplitter(chunk_size=1500, chunk_overlap=200, separator="\n")
     docs = []
-    metadatas = []
-    for i, d in enumerate( data ):
-        splits = text_splitter.split_text( d )
-        docs.extend( splits )
-        metadatas.extend( [{"source": sources[i]}] * len( splits ) )
+    # metadatas = []
+    for i, d in enumerate(data):
+        splits = text_splitter.split_documents(d)
+        docs.extend(splits)
+        # metadatas.extend([{"source": d.metadatas}] * len(splits))
 
     # Here we create a vector store from the documents and save it to disk.
     print(docs)
-    store = FAISS.from_texts( docs, OpenAIEmbeddings(), metadatas=metadatas )
-    faiss.write_index( store.index, "docs.index" )
-    store.index = None
-    with open( "faiss_store.pkl", "wb" ) as f:
-        pickle.dump( store, f )
+    Pinecone.from_documents(docs, OpenAIEmbeddings(), index_name=index_name)
 
 if __name__ == "__main__":
     ingest()

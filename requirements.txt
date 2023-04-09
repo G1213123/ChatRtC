@@ -1,9 +1,12 @@
-langchain
+langchain~=0.0.135
 tiktoken==0.3.2
-ratelimiter
+ratelimiter~=1.2.0.post0
 python-dotenv==1.0.0
 markdownify==0.11.6
 openai
 faiss-cpu
-streamlit
+streamlit~=1.21.0
 streamlit-chat
+pydantic~=1.10.7
+pinecone-client
+lxml
