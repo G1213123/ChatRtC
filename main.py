@@ -98,6 +98,11 @@ with st.sidebar:
 
         clauses = [s.strip() for s  in result['clauses'].split(',')]
 
+        if st.session_state["generated"]:
+            for i in range(len(st.session_state["generated"]) - 1, -1, -1):
+                message(st.session_state["generated"][i], key=str(i))
+                message(st.session_state["past"][i], is_user=True, key=str(i) + "_user")
+
         for i, h in enumerate( result['sources'].split( ',' ) ):
             HtmlFile = open( h.replace( '.md', '.htm' ).strip(), encoding="utf8", errors='ignore' )
             source_code = HtmlFile.read()
@@ -131,8 +136,4 @@ with st.sidebar:
         #    st.session_state.past.append( user_input )
         #    st.session_state.generated.append( output )
 
-    if st.session_state["generated"]:
 
-        for i in range( len( st.session_state["generated"] ) - 1, -1, -1 ):
-            message( st.session_state["generated"][i], key=str( i ) )
-            message( st.session_state["past"][i], is_user=True, key=str( i ) + "_user" )
