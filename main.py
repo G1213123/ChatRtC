@@ -98,11 +98,15 @@ def get_text():
 
 results_tabs = st.tabs( ['result1', 'result2', 'result3'] )
 
+with results_tabs[0]:
+    hint = st.info("Enter your question in the sidebar for chatbot. Open the sidebar with the arrow in the top left.")
+
 with st.sidebar:
     st.title( "ChatRTC loaded with TPDM", )
     user_input = get_text()
 
     if user_input != "":
+        hint.empty()
         with get_openai_callback() as cb:
             result = chain( {"question": user_input} )
         output = f"Answer: {result['answer']}\n\nClauses: {result['clauses']}"
