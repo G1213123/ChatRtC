@@ -1,11 +1,13 @@
 """Python file to serve as the frontend"""
+import tempfile
 import urllib
 import datetime
 
 import streamlit as st
 from streamlit_chat import message
-from streamlit.components.v1 import html, iframe
+from streamlit.components.v1 import iframe, html
 import pinecone
+from langchain.callbacks import get_openai_callback
 from langchain.chat_models import ChatOpenAI
 from prompt import EXAMPLE_PROMPT, QUESTION_PROMPT, COMBINE_PROMPT
 from langchain.vectorstores import Pinecone
@@ -15,8 +17,8 @@ from google.oauth2 import service_account
 from google.cloud import storage
 import openai
 from dotenv import load_dotenv
-import os
 import re
+import os
 
 load_dotenv()
 
@@ -31,14 +33,15 @@ index_name = os.getenv( "PINECONE_INDEX" )
 index = pinecone.Index( index_name )
 embeddings = OpenAIEmbeddings()
 store = Pinecone( index, embeddings.embed_query, "text" )
-
+retriever = store.as_retriever()
 
 chain = RetrievalQAWithClausesSourcesChain.from_llm( llm=ChatOpenAI( temperature=0 ),
                                                      document_prompt=EXAMPLE_PROMPT,
                                                      question_prompt=QUESTION_PROMPT,
                                                      combine_prompt=COMBINE_PROMPT,
-                                                     vectorstore=store,
-                                                     k=2,
+                                                     retriever=retriever,
+                                                     reduce_k_below_max_tokens=True,
+                                                     max_tokens_limit=1000,
                                                      verbose=True )
 
 # Create API client.
@@ -56,25 +59,36 @@ def read_file(bucket_name, file_path):
     bucket = client.bucket( bucket_name )
     content = bucket.blob( file_path )
 
-    url = content.generate_signed_url(
-        version="v4",
-        # This URL is valid for 15 minutes
-        expiration=datetime.timedelta( minutes=15 ),
-        # Allow GET requests using this URL.
-        method="GET",
-        # content_type='text/html'
-    )
-    return url
+    # Read HTML file contents
+    html_contents = content.download_as_bytes().decode('utf-8')
 
+    # Find all image filenames in HTML file contents
+    image_filenames = re.findall( r'<img.+?src=[\'"](?P<src>.+?)[\'"].*?>', html_contents )
+
+    # Generate signed URLs for each image file
+    signed_image_urls = {}
+    for image_filename in image_filenames:
+        # Construct full path to image file
+        image_blob = bucket.blob( urllib.parse.urljoin(file_path,image_filename) )
+        signed_image_url = image_blob.generate_signed_url(
+            expiration=datetime.timedelta( hours=1 ),
+            method='GET',
+            version='v4',
+        )
+        signed_image_urls[image_filename] = signed_image_url
+
+    # Replace image filenames in HTML file contents with signed URLs
+    for image_filename, signed_image_url in signed_image_urls.items():
+        html_contents = html_contents.replace( image_filename, signed_image_url )
+    return html_contents
 
 # From here down is all the StreamLit UI.
 st.set_page_config( page_title="ChatRTC loaded with TPDM", page_icon=":robot:", layout="wide" )
 
-if "generated" not in st.session_state:
-    st.session_state["generated"] = []
-
-if "past" not in st.session_state:
-    st.session_state["past"] = []
+ss_keys = ['generated', 'past', 'cost']
+for sk in ss_keys:
+    if sk not in st.session_state:
+        st.session_state[sk] = []
 
 
 def get_text():
@@ -89,24 +103,29 @@ with st.sidebar:
     user_input = get_text()
 
     if user_input != "":
-        result = chain( {"question": user_input} )
+        with get_openai_callback() as cb:
+            result = chain( {"question": user_input} )
         output = f"Answer: {result['answer']}\n\nClauses: {result['clauses']}"
         print( output )
 
         st.session_state.past.append( user_input )
         st.session_state.generated.append( output )
+        st.session_state.cost.append(cb.total_cost)
 
         clauses = [s.strip() for s in result['clauses'].split( ',' )]
 
         if st.session_state["generated"]:
             for i in range( len( st.session_state["generated"] ) - 1, -1, -1 ):
                 message( st.session_state["generated"][i], key=str( i ) )
+                cost = "{:.2f}".format(st.session_state["cost"][i]*7.8)
+                message(f'You have wasted HK${cost} for this answer, satisfied?', avatar_style='miniavs', seed=15 ,key=str(i)+"_cost")
                 message( st.session_state["past"][i], is_user=True, key=str( i ) + "_user" )
 
-        for i, h in enumerate( result['sources'].split( ',' ) ):
-            bucket_name = "tpdm"
-            file_path = h.replace( '.md', '.htm' ).strip()
-            source_code = read_file( bucket_name, file_path )
-
+        for i, h in enumerate( result['sources'].split( ',' )[:3] ):
             with results_tabs[i]:
-                iframe( source_code, width=None, height=600, scrolling=True )
+                with st.spinner( 'Loading Documents' ):
+                    bucket_name = "tpdm"
+                    file_path = h.replace( '.md', '.htm' ).strip()
+                    source_code = read_file( bucket_name, file_path )
+                html(source_code, scrolling=True, height=800 )
+

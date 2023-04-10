@@ -1,9 +1,9 @@
 """Ask a question to the notion database."""
-from langchain.chains import VectorDBQAWithSourcesChain
-from typing import Any, Dict, List, Optional
+from langchain.chains import RetrievalQAWithSourcesChain
+from typing import Any, Dict, List
 import re
 
-class RetrievalQAWithClausesSourcesChain (VectorDBQAWithSourcesChain):
+class RetrievalQAWithClausesSourcesChain (RetrievalQAWithSourcesChain):
     clauses_key: str = "clauses"  #: :meta private:
 
     @property

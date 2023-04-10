@@ -2,6 +2,7 @@ Notion_DB/*
 ss/
 static/TPDM/
 *.toml
+test/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
