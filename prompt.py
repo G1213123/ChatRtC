@@ -10,8 +10,10 @@ QUESTION_PROMPT = PromptTemplate(
     template=question_prompt_template, input_variables=["context", "question"]
 )
 
-combine_prompt_template = """I want you to act as a professional traffic engineer and explain like I am Five.
-Given the following extracted parts of a long document and a question, create a final answer using plain text.
+combine_prompt_template = """I want you to act as a professional traffic engineer and explain the design principle like I am Five.
+Given the following extracted parts of the deisgn manual and a question, create a final answer using plain text.
+Use your own words to answer the question.
+Add quotes from the document if you think it is relevant, quote them with the quote mark "".
 If you don't know the answer, just say that you don't know. Don't try to make up an answer.
 Extract the relevant "CLAUSES" number from the document text. 
 The clause number should be in the format of "X.X.X.X", where X is integer, and should be found in the document text.
