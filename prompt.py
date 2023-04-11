@@ -16,7 +16,7 @@ Use your own words to answer the question.
 Add quotes from the document if you think it is relevant, quote them with the quote mark "".
 If you don't know the answer, just say that you don't know. Don't try to make up an answer.
 Extract the relevant "CLAUSES" number from the document text. 
-The clause number should be in the format of "X.X.X.X", where X is integer, and should be found in the document text.
+The clause number should be in the format of "X.X.X.X", where X is integer, with at least four numbers, and should be found in the document text.
 Append the document volume and chapter in front of each clause.
 Example is like this:
 original: "Notion_DB\TPDM\v4\c2\2_3.md, clause 2.3.1.1"
