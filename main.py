@@ -1,5 +1,4 @@
 """Python file to serve as the frontend"""
-import tempfile
 import urllib
 import datetime
 
@@ -62,24 +61,25 @@ def read_file(bucket_name, file_path):
     # Read HTML file contents
     html_contents = content.download_as_bytes().decode('utf-8')
 
-    # Find all image filenames in HTML file contents
-    image_filenames = re.findall( r'<img.+?src=[\'"](?P<src>.+?)[\'"].*?>', html_contents )
+    # find all relative paths in the HTML document
+    pattern = re.compile(r'(?:href|src)=["\']((?!#)[^"\']+)["\']')
+    relative_paths = pattern.findall( html_contents )
 
     # Generate signed URLs for each image file
     signed_image_urls = {}
-    for image_filename in image_filenames:
+    for relative_path in relative_paths:
         # Construct full path to image file
-        image_blob = bucket.blob( urllib.parse.urljoin(file_path,image_filename) )
+        image_blob = bucket.blob( urllib.parse.urljoin(file_path,relative_path) )
         signed_image_url = image_blob.generate_signed_url(
             expiration=datetime.timedelta( hours=1 ),
             method='GET',
             version='v4',
         )
-        signed_image_urls[image_filename] = signed_image_url
+        signed_image_urls[relative_path] = signed_image_url
 
     # Replace image filenames in HTML file contents with signed URLs
-    for image_filename, signed_image_url in signed_image_urls.items():
-        html_contents = html_contents.replace( image_filename, signed_image_url )
+    for relative_path, signed_image_url in signed_image_urls.items():
+        html_contents = html_contents.replace( relative_path, signed_image_url )
     return html_contents
 
 # From here down is all the StreamLit UI.
