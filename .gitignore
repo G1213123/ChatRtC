@@ -3,6 +3,7 @@ ss/
 static/TPDM/
 *.toml
 test/
+.models/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

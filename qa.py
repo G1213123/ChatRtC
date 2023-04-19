@@ -1,7 +1,9 @@
 """Ask a question to the notion database."""
-from langchain.chains import RetrievalQAWithSourcesChain
-from typing import Any, Dict, List
 import re
+from typing import Any, Dict, List
+
+from langchain.chains import RetrievalQAWithSourcesChain
+
 
 class RetrievalQAWithClausesSourcesChain (RetrievalQAWithSourcesChain):
     clauses_key: str = "clauses"  #: :meta private:

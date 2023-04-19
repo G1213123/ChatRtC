@@ -1,24 +1,25 @@
 """Python file to serve as the frontend"""
+import datetime
+import os
+import re
 import tempfile
 import urllib
-import datetime
 
-import streamlit as st
-from streamlit_chat import message
-from streamlit.components.v1 import iframe, html
+import openai
 import pinecone
+import streamlit as st
+from dotenv import load_dotenv
+from google.cloud import storage
+from google.oauth2 import service_account
 from langchain.callbacks import get_openai_callback
 from langchain.chat_models import ChatOpenAI
-from prompt import EXAMPLE_PROMPT, QUESTION_PROMPT, COMBINE_PROMPT
-from langchain.vectorstores import Pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.vectorstores import Pinecone
+from streamlit.components.v1 import html, iframe
+from streamlit_chat import message
+
+from prompt import COMBINE_PROMPT, EXAMPLE_PROMPT, QUESTION_PROMPT
 from qa import RetrievalQAWithClausesSourcesChain
-from google.oauth2 import service_account
-from google.cloud import storage
-import openai
-from dotenv import load_dotenv
-import re
-import os
 
 load_dotenv()
 
