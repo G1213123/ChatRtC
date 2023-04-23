@@ -143,6 +143,6 @@ with st.sidebar:
                             version='v4',
                         )
                         st.markdown( f"""
-                        <embed src="{url}" width="100%" height="800">
+                        <iframe src="{url}" width="100%" height="800">
                         """, unsafe_allow_html=True )
 
