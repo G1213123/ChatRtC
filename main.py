@@ -142,7 +142,11 @@ with st.sidebar:
                             method='GET',
                             version='v4',
                         )
-                        st.markdown( f"""
-                        <iframe src="{url}" width="100%" height="800">
+                        st.markdown( f"""<embed
+                                          class="pdfobject"
+                                          type="application/pdf"
+                                          title="Embedded PDF"
+                                          src="{url}"
+                                          style="overflow: auto; width: 100%; height: 100%;">
                         """, unsafe_allow_html=True )
 
