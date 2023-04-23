@@ -129,7 +129,20 @@ with st.sidebar:
             with results_tabs[i]:
                 with st.spinner( 'Loading Documents' ):
                     bucket_name = "tpdm"
-                    file_path = h.replace( '.md', '.htm' ).strip()
-                    source_code = read_file( bucket_name, file_path )
-                html(source_code, scrolling=True, height=800 )
+                    if 'htm' in h:
+                        file_path = h.replace( '.md', '.htm' ).strip()
+                        source_code = read_file( bucket_name, file_path )
+                        html(source_code, scrolling=True, height=800 )
+                    else:
+                        file_path = urllib.parse.unquote( h ).replace( '\\', '/' ).replace( 'static/', '' )
+                        bucket = client.bucket( bucket_name )
+                        content = bucket.blob( file_path )
+                        url = content.generate_signed_url(
+                            expiration=datetime.timedelta( hours=1 ),
+                            method='GET',
+                            version='v4',
+                        )
+                        st.markdown( f"""
+                        <embed src="{url}" width="100%" height="800">
+                        """, unsafe_allow_html=True )
 

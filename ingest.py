@@ -1,7 +1,7 @@
 """This is the logic for ingesting Notion data into LangChain."""
 from pathlib import Path
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.document_loaders import BSHTMLLoader
+from langchain.document_loaders import BSHTMLLoader, PyMuPDFLoader
 import openai
 from langchain.vectorstores import FAISS, Pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -31,18 +31,14 @@ if index_name not in pinecone.list_indexes():
 
 def ingest():
     # Here we load in the data in the format that Notion exports it in.
-    ps = list(Path("static/TPDM/").rglob("*_*.htm"))
-    pattern = re.compile(r'\d+_\d+.htm')
-    ps = [p for p in ps if pattern.match(p.name)]
+    ps = list(Path("static/HyD_GN/").rglob("*.pdf"))
+
 
     data = []
     # sources = []
     for p in ps:
-        loader = BSHTMLLoader(p, open_encoding='utf-8')
+        loader = PyMuPDFLoader(str(p))
         s = loader.load()
-        for t in s:
-            t.page_content = t.page_content.replace('Top\n\n  Press Ctrl-F for Keyword Search on this Page', '')
-            t.metadata['source'] = str(t.metadata['source'])
         data.append(s)
         # sources.append( p )
 

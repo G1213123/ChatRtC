@@ -15,12 +15,13 @@ Given the following extracted parts of the deisgn manual and a question, create 
 Use your own words to answer the question.
 Add quotes from the document if you think it is relevant, quote them with the quote mark "".
 If you don't know the answer, just say that you don't know. Don't try to make up an answer.
-Extract the relevant "CLAUSES" number from the document text. 
-The clause number should be in the format of "X.X.X.X", where X is integer, with at least four numbers, and should be found in the document text.
-Append the document volume and chapter in front of each clause.
+You will be provided with two sets of documents, either Transport Planning and Design Manual (TPDM) or Highway Guidance Notes (HyD GN).
+Extract the relevant "CLAUSES" number from the document text, if any. 
+The clause number should be in the format of "X.X.X.X", where X is integer, and should be found in the document text.
+Append the document volume and chapter or page number in front of each clause.
 Example is like this:
 original: "Notion_DB\TPDM\v4\c2\2_3.md, clause 2.3.1.1"
-CLAUSES: "[Volume 4 Chapter 2.3 clause 2.3.1.1]"
+CLAUSES: "[TPDM Volume 4 Chapter 2.3 clause 2.3.1.1]"
 SOURCES: "Notion_DB\TPDM\v4\c2\2_3.md"
 Seperate each source and clause with comma.
 Use the Clause expression when answering the question, however, do not change the original expression when providing "SOURCES".
