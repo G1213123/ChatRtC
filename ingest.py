@@ -2,7 +2,7 @@
 from pathlib import Path
 import pickle
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.document_loaders import BSHTMLLoader
+from langchain.document_loaders import BSHTMLLoader, PyMuPDFLoader
 import openai
 from langchain.vectorstores import FAISS, Pinecone
 from langchain.embeddings import LlamaCppEmbeddings
@@ -37,23 +37,37 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 #model = Model(ggml_model=os.getenv("GPT4ALL_PATH"), n_ctx=512)
 llama_embeddings = LlamaCppEmbeddings(model_path=os.getenv("GPT4ALL_PATH"), n_ctx=2048, n_threads=1024)
 
-def ingest():
-    # Here we load in the data in the format that Notion exports it in.
-    ps = list(Path(os.getenv("DOC_PATH")).rglob("*_*.htm"))
-    pattern = re.compile(r'\d+_\d+.htm')
-    ps = [p for p in ps if pattern.match(p.name)]
+def strip_html_tags(s):
+    """remove html tags from a string"""
+    data=[]
+    for t in s:
+        t.page_content = t.page_content.replace('Top\n\n  Press Ctrl-F for Keyword Search on this Page', '')
+        t.page_content = re.sub(r'\n+', '\n', t.page_content)
+        t.metadata['source'] = str(t.metadata['source'])
+        data.append(s)
+    return data
+
+def get_pdf_docs(path, ext, pattern=None):
+        # Here we load in the data in the format that Notion exports it in.
+    ps = list(Path(path).rglob(f"*.{ext}"))
+    if pattern:
+        pattern = re.compile(pattern)
+        ps = [p for p in ps if pattern.match(p.name)]
+    
+    loaders = {'pdf': PyMuPDFLoader, 'htm': BSHTMLLoader}
 
     data = []
     # sources = []
     for p in ps:
-        loader = BSHTMLLoader(p, open_encoding='utf-8')
+        loader = loaders[ext](str(p))
         s = loader.load()
-        for t in s:
-            t.page_content = t.page_content.replace('Top\n\n  Press Ctrl-F for Keyword Search on this Page', '')
-            t.page_content = re.sub(r'\n+', '\n', t.page_content)
-            t.metadata['source'] = str(t.metadata['source'])
         data.append(s)
         # sources.append( p )
+    return data
+
+def ingest():
+    #data = get_pdf_docs("static/TPDM/", "htm", r'\d+_\d+.htm')
+    data = get_pdf_docs(os.getenv("DOC_PATH"), "pdf")
 
     # Here we split the documents, as needed, into smaller chunks.
     # We do this due to the context limits of the LLMs.
@@ -67,13 +81,12 @@ def ingest():
 
     # Here we create a vector store from the documents and save it to disk.
     print(len(docs))
-    for doc in tqdm(docs):
-        vectorstore = FAISS.from_texts(doc.page_content, llama_embeddings, metadatas=doc.metadata)
-        #Pinecone.from_documents(docs, OpenAIEmbeddings(), index_name=index_name)
+    # for doc in tqdm(docs):
+    vectorstore = FAISS.from_documents(docs, llama_embeddings)
+    #Pinecone.from_documents(docs, OpenAIEmbeddings(), index_name=index_name)
 
-        # Save vectorstore
-        with open(".models/vectorstore.pkl", "wb") as f:
-            pickle.dump(vectorstore, f)
+    # Save vectorstore
+    vectorstore.save_local("faiss_index")
 
 if __name__ == "__main__":
     ingest()

@@ -1,0 +1,38 @@
+import requests
+from bs4 import BeautifulSoup
+import os
+
+# URL of the website containing PDF files
+url = "https://www.hyd.gov.hk/en/technical_references/technical_document/guidance_notes"
+
+# Local directory to save PDF files
+local_dir = "static/HyD_GN/"
+
+# Create local directory if it does not exist
+if not os.path.exists(local_dir):
+    os.makedirs(local_dir)
+
+# Send a GET request to the website
+response = requests.get(url)
+
+# Parse the HTML content using BeautifulSoup
+soup = BeautifulSoup(response.text, "html.parser")
+
+# Find all links on the website
+links = soup.find_all("a")
+
+# Loop through each link and download PDF files
+for link in links:
+    href = link.get("href")
+    if href.endswith(".pdf"):
+        # Construct the absolute URL of the PDF file
+        pdf_url = url + "/" + href
+
+        # Send a GET request to the PDF file
+        pdf_response = requests.get(pdf_url)
+
+        # Save the PDF file to the local directory
+        with open(os.path.join(local_dir, href.split('/')[1]), "wb") as f:
+            f.write(pdf_response.content)
+
+print("PDF files have been downloaded to the local directory:", local_dir)
